@@ -20,17 +20,21 @@ This package needs an input txt file with the data list for training and testing
 The detailed network architecture information is given below:
 
 Stage-1 training architecture overview
+
 <img src="/images/table1.png?" width="70%" >
 
 Stage-2 training architecture overview
+
 <img src="/images/table2.png?" width="70%" >
 
 Bottleneck block architecture overview
+
 <img src="/images/table3.png?" width="70%" >
 
 ### Simple Inference Overview
 
 Inference Overview is given in the below figure:
+
 <img src="/images/simple_block.jpg?" width="70%" >
 
 ### Results:
