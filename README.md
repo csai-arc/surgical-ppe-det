@@ -45,11 +45,15 @@ For trained network models please contact the author.
 ### "Surgical-PPE": A New Dataset For Surgical PPE Kit Presence Detection
 
 Sample Surgical PPE kits:
+
 <img src="/images/ppe_vs_nonppe.jpg?" width="50%" >
+
 Surgeons attires (a) Surgical PPE kits are usually loosely fitted around the joints of the personnel, (b) Surgeon not wearing a PPE kit
 
 Sample "Surgical PPE" dataset annotations:
+
 <img src="/images/sample_surgical_ppe_labels.png?" width="90%" >
+
 Class label "0" denotes Non-PPE and Class label "1" denotes PPE
 
 Dataset link: Coming Soon
