@@ -152,13 +152,11 @@ def objective(trial) :
     # Data loading code
     base_path = '/mnt/sdb/datasets/MVOR_dataset/surgeons/'
     train_data = '/mnt/sdb/datasets/MVOR_dataset/surgeons/surg_train.txt'
-    #test_data = '/mnt/sdb/datasets/Yoga-82/valid_lists/yoga_test_valid.txt'
+
     traindir = os.path.join(args.data, 'train')
     valdir = os.path.join(args.data, 'val')
     normalize = transforms.Normalize(mean=[0.5, 0.5, 0.5],
                                      std=[0.5, 0.5, 0.5])
-    #normalize = transforms.Normalize(mean=[0.67442365, 0.65289279, 0.62780316],
-    #                                 std=[0.320678, 0.32098558, 0.33608305])
 
     train_dataset = list_dataset_surgery.txtfile_classification_cscl(base_path, train_data,
                            transform=transforms.Compose([
@@ -413,10 +411,6 @@ def test(val_loader, model, criterion, epoch, use_cuda):
     losses = AverageMeter()
     surg_ppe_top1 = AverageMeter()
     surg_ppe_top5 = AverageMeter()
-    #yoga20_top1 = AverageMeter()
-    #yoga20_top5 = AverageMeter()
-    #yoga82_top1 = AverageMeter()
-    #yoga82_top5 = AverageMeter()
 
     # switch to evaluate mode
     model.eval()
@@ -436,23 +430,12 @@ def test(val_loader, model, criterion, epoch, use_cuda):
         surg_ppe_outputs = model(inputs)
         
         surg_ppe_loss = criterion(surg_ppe_outputs, surg_ppe_targets)
-        #yoga20_loss = criterion(yoga20_outputs, yoga20_targets)
-        #yoga82_loss = criterion(yoga82_outputs, yoga82_targets)
         
         loss = (surg_ppe_loss)# + yoga20_loss + yoga82_loss)
 
         # measure accuracy and record loss
         surg_ppe_prec1, surg_ppe_prec1_dum = accuracy(surg_ppe_outputs.data, surg_ppe_targets.data, topk=(1,1))
         surg_ppe_top1.update(surg_ppe_prec1.item(), inputs.size(0))
-        #surg_ppe_top5.update(surg_ppe_prec5.item(), inputs.size(0))
-        
-        #yoga20_prec1, yoga20_prec5 = accuracy(yoga20_outputs.data, yoga20_targets.data, topk=(1, 5))
-        #yoga20_top1.update(yoga20_prec1.item(), inputs.size(0))
-        #yoga20_top5.update(yoga20_prec5.item(), inputs.size(0))
-        
-        #yoga82_prec1, yoga82_prec5 = accuracy(yoga82_outputs.data, yoga82_targets.data, topk=(1, 5))
-        #yoga82_top1.update(yoga82_prec1.item(), inputs.size(0))
-        #yoga82_top5.update(yoga82_prec5.item(), inputs.size(0))
         
         losses.update(loss.item(), inputs.size(0))
 
