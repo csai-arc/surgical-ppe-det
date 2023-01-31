@@ -268,7 +268,7 @@ def objective(trial) :
         logger = Logger(os.path.join(args.checkpoint, 'log_'+str(trial.number)+'.txt'), title=title, resume=True)
     else:
         logger = Logger(os.path.join(args.checkpoint, 'log_'+str(trial.number)+'.txt'), title=title)
-        logger.set_names(['Learning Rate', 'Train Loss', 'Valid Loss', 'Train Acc.', 'Valid Acc.', 'train_yoga6_top1_avg', 'test_yoga6_top1_avg'])
+        logger.set_names(['Learning Rate', 'Train Loss', 'Valid Loss', 'Train Acc.', 'Valid Acc.', 'train_surg_ppe_top1_avg', 'test_surg_ppe_top1_avg'])
 
 
     if args.evaluate:
@@ -284,11 +284,11 @@ def objective(trial) :
 
         print('Epoch: [%d | %d] LR: %f' % (epoch + 1, args.epochs, lr))
 
-        train_loss, train_acc, train_yoga6_top1_avg= train(train_loader, model, criterion, criterion_cscl6, criterion_cscl20, criterion_cscl82, optimizer, epoch, use_cuda)
-        test_loss, test_acc, test_yoga6_top1_avg = test(val_loader, model, criterion, epoch, use_cuda)
+        train_loss, train_acc, train_surg_ppe_top1_avg= train(train_loader, model, criterion, criterion_cscl6, criterion_cscl20, criterion_cscl82, optimizer, epoch, use_cuda)
+        test_loss, test_acc, test_surg_ppe_top1_avg = test(val_loader, model, criterion, epoch, use_cuda)
 
         # append logger file
-        logger.append([lr, train_loss, test_loss, train_acc, test_acc, train_yoga6_top1_avg, test_yoga6_top1_avg])
+        logger.append([lr, train_loss, test_loss, train_acc, test_acc, train_surg_ppe_top1_avg, test_surg_ppe_top1_avg])
 
         # save model
         is_best = test_acc > best_acc
@@ -328,22 +328,15 @@ def train(train_loader, model, criterion, criterion_cscl6, criterion_cscl20, cri
     loss_ce_tracker = AverageMeter()
     loss_cscl_tracker = AverageMeter()
     loss_simcl_tracker = AverageMeter()
-    yoga6_top1 = AverageMeter()
-    yoga6_top5 = AverageMeter()
-    #yoga20_top1 = AverageMeter()
-    #yoga20_top5 = AverageMeter()
-    #yoga82_top1 = AverageMeter()
-    #yoga82_top5 = AverageMeter()
+    surg_ppe_top1 = AverageMeter()
+    surg_ppe_top5 = AverageMeter()
+
     end = time.time()
     normalize = transforms.Normalize(mean=[0.5, 0.5, 0.5],
                                      std=[0.5, 0.5, 0.5])
-    #transform=transforms.Compose([
-    #                       transforms.Resize((128,256)),
-    #                       transforms.TrivialAugmentWide(),
-    #                       transforms.ToTensor(),
-    #                       normalize])
+
     bar = Bar('Processing', max=len(train_loader))
-    for batch_idx, (inputs, yoga6_targets) in enumerate(train_loader):
+    for batch_idx, (inputs, surg_ppe_targets) in enumerate(train_loader):
         # measure data loading time
         data_time.update(time.time() - end)
 
@@ -351,58 +344,34 @@ def train(train_loader, model, criterion, criterion_cscl6, criterion_cscl20, cri
 
         if use_cuda:
             inputs = inputs.cuda(non_blocking=True)
-            yoga6_targets = yoga6_targets.cuda(non_blocking=True)
-            #yoga20_targets = yoga20_targets.cuda(non_blocking=True)
-            #yoga82_targets = yoga82_targets.cuda(non_blocking=True)
+            surg_ppe_targets = surg_ppe_targets.cuda(non_blocking=True)
+
             
-        inputs, yoga6_targets = torch.autograd.Variable(inputs), torch.autograd.Variable(yoga6_targets)
+        inputs, surg_ppe_targets = torch.autograd.Variable(inputs), torch.autograd.Variable(surg_ppe_targets)
         
-        bsz = yoga6_targets.shape[0]
+        bsz = surg_ppe_targets.shape[0]
 
         # compute output
-        yoga6_outputs = model(inputs)
+        surg_ppe_outputs = model(inputs)
         
-        yoga6_outputs1, yoga6_outputs2 = torch.split(yoga6_outputs, [bsz, bsz], dim=0)
-        yoga6_features = torch.cat([yoga6_outputs1.unsqueeze(1), yoga6_outputs2.unsqueeze(1)], dim=1)
-        
-        #yoga20_outputs1, yoga20_outputs2 = torch.split(yoga20_outputs, [bsz, bsz], dim=0)
-        #yoga20_features = torch.cat([yoga20_outputs1.unsqueeze(1), yoga20_outputs2.unsqueeze(1)], dim=1)
-        
-        #yoga82_outputs1, yoga82_outputs2 = torch.split(yoga82_outputs, [bsz, bsz], dim=0)
-        #yoga82_features = torch.cat([yoga82_outputs1.unsqueeze(1), yoga82_outputs2.unsqueeze(1)], dim=1)
-
-        yoga6_loss = criterion(yoga6_outputs1, yoga6_targets)
-        #yoga20_loss = criterion(yoga20_outputs1, yoga20_targets)
-        #yoga82_loss = criterion(yoga82_outputs1, yoga82_targets)
-        
-        yoga6_cscl_loss = criterion_cscl6(yoga6_features, yoga6_targets)
-        #yoga20_cscl_loss = criterion_cscl20(yoga20_features, yoga20_targets)
-        #yoga82_cscl_loss = criterion_cscl82(yoga82_features, yoga82_targets)
-        
-        yoga6_simcl_loss = criterion_cscl6(yoga6_features)
-        #yoga20_simcl_loss = criterion_cscl20(yoga20_features)
-        #yoga82_simcl_loss = criterion_cscl82(yoga82_features)
-        
+        surg_ppe_outputs1, surg_ppe_outputs2 = torch.split(surg_ppe_outputs, [bsz, bsz], dim=0)
+        surg_ppe_features = torch.cat([surg_ppe_outputs1.unsqueeze(1), surg_ppe_outputs2.unsqueeze(1)], dim=1)
         
 
-        loss_ce = (yoga6_loss)# + yoga20_loss + yoga82_loss)
-        loss_cscl = (yoga6_cscl_loss)# + yoga20_cscl_loss + yoga82_cscl_loss)
-        loss_simcl = (yoga6_simcl_loss)# + yoga20_simcl_loss + yoga82_simcl_loss)
+
+        surg_ppe_loss = criterion(surg_ppe_outputs1, surg_ppe_targets)
+        
+        surg_ppe_cscl_loss = criterion_cscl6(surg_ppe_features, surg_ppe_targets)
+
+        loss_ce = (surg_ppe_loss)
+        loss_cscl = (surg_ppe_cscl_loss)
+        loss_simcl = (surg_ppe_simcl_loss)
 
         loss = 0.6*loss_ce + 0.2*loss_cscl + 0.2*loss_simcl
 
         # measure accuracy and record loss
-        yoga6_prec1,yoga6_prec1_dum= accuracy(yoga6_outputs1.data, yoga6_targets.data, topk=(1,1))
-        yoga6_top1.update(yoga6_prec1.item(), bsz)
-        #yoga6_top5.update(yoga6_prec5.item(), bsz)
-        
-        #yoga20_prec1, yoga20_prec5 = accuracy(yoga20_outputs1.data, yoga20_targets.data, topk=(1, 5))
-        #yoga20_top1.update(yoga20_prec1.item(), bsz)
-        #yoga20_top5.update(yoga20_prec5.item(), bsz)
-        
-        #yoga82_prec1, yoga82_prec5 = accuracy(yoga82_outputs1.data, yoga82_targets.data, topk=(1, 5))
-        #yoga82_top1.update(yoga82_prec1.item(), bsz)
-        #yoga82_top5.update(yoga82_prec5.item(), bsz)
+        surg_ppe_prec1,surg_ppe_prec1_dum= accuracy(surg_ppe_outputs1.data, surg_ppe_targets.data, topk=(1,1))
+        surg_ppe_top1.update(surg_ppe_prec1.item(), bsz)
         
         losses.update(loss.item(), bsz)
         loss_ce_tracker.update(loss_ce.item(), bsz)
@@ -418,7 +387,7 @@ def train(train_loader, model, criterion, criterion_cscl6, criterion_cscl20, cri
         end = time.time()
 
         # plot progress
-        bar.suffix  = '({batch}/{size}) Data: {data:.3f}s | Batch: {bt:.3f}s | Total: {total:} | ETA: {eta:} | Loss: {loss:.4f},{loss_ce_tracker:.4f},{loss_cscl_tracker:.4f},{loss_simcl_tracker:.4f} | top1: {yoga6_top1: .4f} |'.format(
+        bar.suffix  = '({batch}/{size}) Data: {data:.3f}s | Batch: {bt:.3f}s | Total: {total:} | ETA: {eta:} | Loss: {loss:.4f},{loss_ce_tracker:.4f},{loss_cscl_tracker:.4f},{loss_simcl_tracker:.4f} | top1: {surg_ppe_top1: .4f} |'.format(
                     batch=batch_idx + 1,
                     size=len(train_loader),
                     data=data_time.val,
@@ -429,12 +398,12 @@ def train(train_loader, model, criterion, criterion_cscl6, criterion_cscl20, cri
                     loss_ce_tracker=loss_ce_tracker.avg,
                     loss_cscl_tracker=loss_cscl_tracker.avg,
                     loss_simcl_tracker=loss_simcl_tracker.avg,
-                    yoga6_top1=yoga6_top1.avg,
+                    surg_ppe_top1=surg_ppe_top1.avg,
                     )
         bar.next()
     bar.finish()
-    train_accuracy = (yoga6_top1.avg)# + yoga20_top1.avg + yoga82_top1.avg)/3
-    return (losses.avg, train_accuracy, yoga6_top1.avg)
+    train_accuracy = (surg_ppe_top1.avg)# + yoga20_top1.avg + yoga82_top1.avg)/3
+    return (losses.avg, train_accuracy, surg_ppe_top1.avg)
 
 def test(val_loader, model, criterion, epoch, use_cuda):
     global best_acc
@@ -442,8 +411,8 @@ def test(val_loader, model, criterion, epoch, use_cuda):
     batch_time = AverageMeter()
     data_time = AverageMeter()
     losses = AverageMeter()
-    yoga6_top1 = AverageMeter()
-    yoga6_top5 = AverageMeter()
+    surg_ppe_top1 = AverageMeter()
+    surg_ppe_top5 = AverageMeter()
     #yoga20_top1 = AverageMeter()
     #yoga20_top5 = AverageMeter()
     #yoga82_top1 = AverageMeter()
@@ -454,28 +423,28 @@ def test(val_loader, model, criterion, epoch, use_cuda):
 
     end = time.time()
     bar = Bar('Processing', max=len(val_loader))
-    for batch_idx, (inputs, yoga6_targets) in enumerate(val_loader):
+    for batch_idx, (inputs, surg_ppe_targets) in enumerate(val_loader):
         # measure data loading time
         data_time.update(time.time() - end)
 
         if use_cuda:
-            inputs, yoga6_targets = inputs.cuda(non_blocking=True), yoga6_targets.cuda(non_blocking=True)
+            inputs, surg_ppe_targets = inputs.cuda(non_blocking=True), surg_ppe_targets.cuda(non_blocking=True)
         with torch.no_grad():
-            inputs, yoga6_targets = torch.autograd.Variable(inputs), torch.autograd.Variable(yoga6_targets)
+            inputs, surg_ppe_targets = torch.autograd.Variable(inputs), torch.autograd.Variable(surg_ppe_targets)
 
         # compute output
-        yoga6_outputs = model(inputs)
+        surg_ppe_outputs = model(inputs)
         
-        yoga6_loss = criterion(yoga6_outputs, yoga6_targets)
+        surg_ppe_loss = criterion(surg_ppe_outputs, surg_ppe_targets)
         #yoga20_loss = criterion(yoga20_outputs, yoga20_targets)
         #yoga82_loss = criterion(yoga82_outputs, yoga82_targets)
         
-        loss = (yoga6_loss)# + yoga20_loss + yoga82_loss)
+        loss = (surg_ppe_loss)# + yoga20_loss + yoga82_loss)
 
         # measure accuracy and record loss
-        yoga6_prec1, yoga6_prec1_dum = accuracy(yoga6_outputs.data, yoga6_targets.data, topk=(1,1))
-        yoga6_top1.update(yoga6_prec1.item(), inputs.size(0))
-        #yoga6_top5.update(yoga6_prec5.item(), inputs.size(0))
+        surg_ppe_prec1, surg_ppe_prec1_dum = accuracy(surg_ppe_outputs.data, surg_ppe_targets.data, topk=(1,1))
+        surg_ppe_top1.update(surg_ppe_prec1.item(), inputs.size(0))
+        #surg_ppe_top5.update(surg_ppe_prec5.item(), inputs.size(0))
         
         #yoga20_prec1, yoga20_prec5 = accuracy(yoga20_outputs.data, yoga20_targets.data, topk=(1, 5))
         #yoga20_top1.update(yoga20_prec1.item(), inputs.size(0))
@@ -492,7 +461,7 @@ def test(val_loader, model, criterion, epoch, use_cuda):
         end = time.time()
 
         # plot progress
-        bar.suffix  = '({batch}/{size}) Data: {data:.3f}s | Batch: {bt:.3f}s | Total: {total:} | ETA: {eta:} | Loss: {loss:.4f} | top1: {yoga6_top1: .4f} |'.format(
+        bar.suffix  = '({batch}/{size}) Data: {data:.3f}s | Batch: {bt:.3f}s | Total: {total:} | ETA: {eta:} | Loss: {loss:.4f} | top1: {surg_ppe_top1: .4f} |'.format(
                     batch=batch_idx + 1,
                     size=len(val_loader),
                     data=data_time.avg,
@@ -500,12 +469,12 @@ def test(val_loader, model, criterion, epoch, use_cuda):
                     total=bar.elapsed_td,
                     eta=bar.eta_td,
                     loss=losses.avg,
-                    yoga6_top1=yoga6_top1.avg,
+                    surg_ppe_top1=surg_ppe_top1.avg,
                     )
         bar.next()
     bar.finish()
-    test_accuracy = (yoga6_top1.avg)# + yoga20_top1.avg + yoga82_top1.avg)/3
-    return (losses.avg, test_accuracy, yoga6_top1.avg)
+    test_accuracy = (surg_ppe_top1.avg)# + yoga20_top1.avg + yoga82_top1.avg)/3
+    return (losses.avg, test_accuracy, surg_ppe_top1.avg)
 
 def save_checkpoint(state, is_best, trial_number, checkpoint='checkpoint', filename='checkpoint.pth.tar'):
     filepath = os.path.join(checkpoint, filename)
